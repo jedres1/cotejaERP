@@ -1,0 +1,201 @@
+-- ============================================================
+-- V2 - Facturación DTE y Compras
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS billing_clients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    company_id BIGINT,
+    name VARCHAR(255) NOT NULL,
+    trade_name VARCHAR(255),
+    document_type VARCHAR(20),
+    document_number VARCHAR(50),
+    nrc VARCHAR(50),
+    business_activity VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    billing_email VARCHAR(255),
+    billing_phone VARCHAR(50),
+    address_department VARCHAR(100),
+    address_municipality VARCHAR(100),
+    address_district VARCHAR(100),
+    address VARCHAR(500),
+    preferred_dte_type VARCHAR(10),
+    is_clients_varios BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bc_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_bc_company FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS product_types (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    company_id BIGINT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20),
+    controls_inventory BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pt_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_pt_company FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS billing_products (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    company_id BIGINT,
+    product_type_id BIGINT,
+    code VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    type VARCHAR(20),
+    price DECIMAL(10,2) NOT NULL DEFAULT 0,
+    unit VARCHAR(20),
+    tributes JSON,
+    is_exempt BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    stock_quantity INT DEFAULT 0,
+    min_stock INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bp_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_bp_company FOREIGN KEY (company_id) REFERENCES companies(id),
+    CONSTRAINT fk_bp_type FOREIGN KEY (product_type_id) REFERENCES product_types(id)
+);
+
+CREATE TABLE IF NOT EXISTS billing_dte_correlatives (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    company_id BIGINT NOT NULL,
+    document_type VARCHAR(5) NOT NULL,
+    year INT NOT NULL,
+    establishment VARCHAR(10) DEFAULT '0001',
+    point_of_sale VARCHAR(10) DEFAULT '0001',
+    next_number BIGINT DEFAULT 1,
+    CONSTRAINT fk_bdc_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_bdc_company FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS billing_settings (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    company_id BIGINT NOT NULL,
+    `key` VARCHAR(100) NOT NULL,
+    value JSON,
+    CONSTRAINT fk_bs_company FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS billing_invoices (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tenant_customer_id BIGINT,
+    company_id BIGINT,
+    customer_id BIGINT,
+    number_control VARCHAR(100) UNIQUE,
+    generation_code VARCHAR(100) UNIQUE,
+    document_type VARCHAR(5),
+    issued_at DATE NOT NULL,
+    customer_name VARCHAR(255),
+    subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
+    iva DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'PENDIENTE',
+    has_error BOOLEAN DEFAULT FALSE,
+    accepted BOOLEAN DEFAULT FALSE,
+    email_sent BOOLEAN DEFAULT FALSE,
+    reception_stamp TEXT,
+    void_stamp TEXT,
+    voided_at TIMESTAMP NULL,
+    void_reason TEXT,
+    void_json JSON,
+    return_stamp TEXT,
+    returned_at TIMESTAMP NULL,
+    return_json JSON,
+    observations TEXT,
+    json_dte JSON,
+    signed_dte JSON,
+    payment_status VARCHAR(20) DEFAULT 'pending',
+    amount_paid DECIMAL(10,2) DEFAULT 0,
+    paid_at TIMESTAMP NULL,
+    created_by BIGINT,
+    updated_by BIGINT,
+    deleted_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bi_customer FOREIGN KEY (customer_id) REFERENCES billing_clients(id),
+    CONSTRAINT fk_bi_company FOREIGN KEY (company_id) REFERENCES companies(id),
+    CONSTRAINT fk_bi_tenant FOREIGN KEY (tenant_customer_id) REFERENCES customers(id)
+);
+
+CREATE TABLE IF NOT EXISTS billing_invoice_payments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    billing_invoice_id BIGINT NOT NULL,
+    bank_account_id BIGINT,
+    reconciliation_id BIGINT,
+    amount DECIMAL(10,2) NOT NULL,
+    method VARCHAR(50),
+    reference VARCHAR(255),
+    notes TEXT,
+    registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_reconciled BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bip_invoice FOREIGN KEY (billing_invoice_id) REFERENCES billing_invoices(id)
+);
+
+CREATE TABLE IF NOT EXISTS suppliers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    company_id BIGINT,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    document_type VARCHAR(20),
+    document_number VARCHAR(50),
+    nrc VARCHAR(50),
+    trade_name VARCHAR(255),
+    business_activity VARCHAR(255),
+    activity_description TEXT,
+    address_department VARCHAR(100),
+    address_municipality VARCHAR(100),
+    address_district VARCHAR(100),
+    address VARCHAR(500),
+    billing_email VARCHAR(255),
+    billing_phone VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'active',
+    notes TEXT,
+    created_by BIGINT,
+    updated_by BIGINT,
+    deleted_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sup_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_sup_company FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS purchase_invoices (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    company_id BIGINT,
+    supplier_id BIGINT,
+    document_type VARCHAR(5) DEFAULT '03',
+    invoice_number VARCHAR(100) NOT NULL,
+    purchase_date DATE NOT NULL,
+    due_date DATE,
+    subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
+    iva DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL DEFAULT 0,
+    payment_method VARCHAR(50),
+    payment_status VARCHAR(20) DEFAULT 'pending',
+    status VARCHAR(20) DEFAULT 'registered',
+    notes TEXT,
+    extracted_document_body JSON,
+    created_by BIGINT,
+    updated_by BIGINT,
+    deleted_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_pi_supplier_number (supplier_id, invoice_number),
+    CONSTRAINT fk_pi_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_pi_company FOREIGN KEY (company_id) REFERENCES companies(id),
+    CONSTRAINT fk_pi_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+);
