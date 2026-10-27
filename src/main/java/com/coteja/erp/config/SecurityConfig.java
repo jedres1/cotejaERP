@@ -15,6 +15,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import jakarta.servlet.DispatcherType;
 
 @Configuration
 @EnableWebSecurity
@@ -32,9 +33,10 @@ public class SecurityConfig {
             )
             .cors(cors -> {})
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/logout", "/api/auth/**",
-                        "/api/license/**", "/api/admin/releases/latest/**",
-                        "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
+                .requestMatchers("/login", "/logout", "/error",
+                        "/api/auth/**", "/api/license/**", "/api/admin/releases/latest/**",
+                        "/", "/index.html", "/vite.svg", "/assets/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/admin/**").hasAnyRole("ADMIN", "INQUILINO")
                 .anyRequest().authenticated()
